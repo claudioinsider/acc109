@@ -1,0 +1,861 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#a70b0d" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta
+      name="format-detection"
+      content="telephone=no,date=no,address=no,email=no"
+    />
+    <title>News</title>
+
+    <!-- Preconnect: abre TCP+TLS antes do HTML acabar de parsear -->
+    <link rel="preconnect" href="https://scripts.converteai.net" crossorigin />
+    <link rel="preconnect" href="https://cdn.converteai.net" crossorigin />
+    <link rel="preconnect" href="https://images.converteai.net" crossorigin />
+    <link rel="preconnect" href="https://api.vturb.com.br" crossorigin />
+    <link rel="preconnect" href="https://imagedelivery.net" crossorigin />
+    <link rel="dns-prefetch" href="https://kujvy.ttrk.io" />
+    <link rel="dns-prefetch" href="https://trk.mistokles.lat" />
+
+    <!-- Preload do player + manifesto HLS (LCP do vídeo) -->
+    <link
+      rel="preload"
+      as="script"
+      fetchpriority="high"
+      href="https://scripts.converteai.net/44b62239-d730-47b6-ae87-62548241599d/players/69eba386e1dcfbd062a1f22a/v4/player.js"
+    />
+    <link
+      rel="preload"
+      as="script"
+      fetchpriority="high"
+      href="https://scripts.converteai.net/lib/js/smartplayer-wc/v4/smartplayer.js"
+    />
+    <link
+      rel="preload"
+      as="fetch"
+      fetchpriority="high"
+      crossorigin
+      href="https://cdn.converteai.net/44b62239-d730-47b6-ae87-62548241599d/69fa7304250b37c35976f0e3/main.m3u8"
+    />
+
+    <!-- Performance marker do vturb -->
+    <script>
+      !(function (i, n) {
+        i._plt =
+          i._plt || (n && n.timeOrigin ? n.timeOrigin + n.now() : Date.now())
+      })(window, performance)
+    </script>
+
+    <style>
+      /* Reset + mobile defaults */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+        text-size-adjust: 100%;
+        -webkit-touch-callout: none;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        overscroll-behavior-y: none;
+      }
+      body {
+        font:
+          16px/1.4 Arial,
+          Helvetica,
+          sans-serif;
+        background: #fff;
+        color: #1c1e21;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-rendering: optimizeSpeed;
+        min-height: 100vh;
+        min-height: 100dvh;
+      }
+      img {
+        max-width: 100%;
+        display: block;
+        -webkit-user-drag: none;
+        user-select: none;
+      }
+      button,
+      a {
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      a {
+        color: inherit;
+      }
+
+      main#container {
+        width: 100%;
+        max-width: 600px;
+        margin: 0 auto;
+        padding-left: env(safe-area-inset-left);
+        padding-right: env(safe-area-inset-right);
+      }
+
+      .header {
+        position: relative;
+        background: #a70b0d;
+        color: #fff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0.5rem;
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+        font-size: 1.6rem;
+      }
+      .menu-icon {
+        position: absolute;
+        left: 15px;
+        font-size: 24px;
+        cursor: pointer;
+      }
+
+      /* VSL frame — anti-CLS + GPU layer pra performance em iOS */
+      #vsl-content {
+        margin-bottom: 1rem;
+      }
+      .vsl-frame {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 16/9;
+        background: #000;
+        overflow: hidden;
+        contain: layout;
+        transform: translateZ(0);
+        will-change: contents;
+      }
+      .vsl-frame vturb-smartplayer {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+        z-index: 2;
+      }
+      .vsl-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at center, #1a1a1a 0%, #000 70%);
+        pointer-events: none;
+        z-index: 1;
+        transition: opacity 0.4s ease;
+      }
+      .vsl-frame.is-ready {
+        aspect-ratio: auto;
+        background: transparent;
+        contain: none;
+        transform: none;
+        will-change: auto;
+      }
+      .vsl-frame.is-ready vturb-smartplayer {
+        position: static;
+        height: auto;
+      }
+      .vsl-frame.is-ready::before {
+        opacity: 0;
+      }
+      vturb-smartplayer {
+        --headline-margin-bottom: 10px !important;
+      }
+
+      .hero-img {
+        width: 90%;
+        margin: 0 auto 2rem;
+      }
+
+      .esconder {
+        display: none;
+      }
+
+      #toper {
+        margin: 0 10px;
+        border-radius: 15px;
+        font-size: 1em;
+        border: 2px solid #e14766;
+        padding: 0.5rem 1.2rem;
+        text-align: center;
+        background: #fce7f3;
+      }
+      #toper span {
+        color: #00a63e;
+      }
+      #toper p {
+        font-style: italic;
+        padding-top: 10px;
+      }
+
+      #bottles {
+        padding: 0 10px;
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 1.5rem;
+      }
+      #bottles a {
+        display: grid;
+        place-items: center;
+        border: 0;
+        background: #fff;
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        transition: transform 0.25s ease;
+        min-height: 44px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      #bottles img {
+        width: 100%;
+        border-radius: 15px;
+        pointer-events: none;
+      }
+      /* Sticky-hover fix: só aplica hover em dispositivos com cursor real */
+      @media (hover: hover) and (pointer: fine) {
+        #bottles a:hover {
+          transform: scale(1.03);
+        }
+      }
+      /* Mobile: feedback tátil no tap (active) */
+      @media (hover: none) {
+        #bottles a:active {
+          transform: scale(0.98);
+          transition-duration: 0.1s;
+        }
+      }
+
+      .offer-img {
+        width: 100%;
+        margin: 1rem 0 3rem;
+      }
+
+      /* Comentários */
+      .comments {
+        padding: 10px 1rem 3rem;
+        background: #f5f5f5;
+        display: grid;
+        gap: 10px;
+        content-visibility: auto;
+        contain-intrinsic-size: 0 1200px;
+      }
+      .comments h3 {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        font-size: 17px;
+        margin-bottom: 0.5rem;
+      }
+      .comment-card.resp {
+        margin-left: 71px;
+        padding-left: 5px;
+        border-left: 1px solid #e2e2e2;
+      }
+      .comment-card.resp + .comment-card.resp {
+        transform: translateY(-10px);
+        padding-top: 10px;
+      }
+      .comment-body {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .comment-avatar {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: #e4e6eb;
+        object-fit: cover;
+      }
+      .comment-content {
+        display: grid;
+        gap: 5px;
+        min-width: 0;
+      }
+      .comment-author {
+        color: #385898;
+        font-size: 1rem;
+        margin: 0;
+        font-weight: 600;
+      }
+      .comment-text {
+        font-size: 1.0625rem;
+        color: #1c1e21;
+        line-height: 1.35;
+        margin: 0;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+      }
+      .sub-comments {
+        display: flex;
+        flex-wrap: wrap;
+        width: calc(100% - 55px);
+        transform: translateX(55px);
+        padding: 2px 0 0;
+        gap: 3px;
+        align-items: center;
+        font:
+          1rem Helvetica,
+          Arial,
+          sans-serif;
+        color: #4267b2;
+      }
+      .sub-comments > * {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .sub-comments .action {
+        cursor: pointer;
+        padding: 4px 4px;
+        margin: -4px -4px;
+        min-height: 32px;
+        user-select: none;
+      }
+      .sub-comments .point {
+        font-size: 1rem;
+        transform: translateY(-4px);
+        cursor: default;
+      }
+      .like-count {
+        display: inline-flex;
+        gap: 5px;
+        align-items: center;
+      }
+      .like-count img {
+        width: 14px;
+        height: 14px;
+      }
+
+      .reply-tooltip {
+        position: absolute;
+        background: #f0f2f5;
+        color: #050505;
+        font:
+          12px Arial,
+          sans-serif;
+        padding: 6px 10px;
+        border-radius: 8px;
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.2);
+        z-index: 999;
+        white-space: nowrap;
+        animation: fadeIn 0.2s ease;
+        pointer-events: none;
+        max-width: calc(100vw - 20px);
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      footer {
+        background: #a70b0d;
+        color: #ebebeb;
+      }
+      footer p {
+        padding: 12px 1rem;
+        padding-bottom: calc(12px + env(safe-area-inset-bottom));
+        margin: 0;
+        text-align: center;
+        font-weight: 500;
+        background: #000;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *,
+        *::before,
+        *::after {
+          animation-duration: 0.01ms !important;
+          transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main id="container">
+      <header class="header"><div class="logo">HEALTH</div></header>
+
+      <section id="vsl-content" aria-label="Featured video">
+        <div id="vsl">
+          <div class="vsl-frame" id="vsl-frame">
+            <vturb-smartplayer
+              id="vid-69eba386e1dcfbd062a1f22a"
+            ></vturb-smartplayer>
+          </div>
+        </div>
+      </section>
+
+      <img
+        class="hero-img"
+        src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/8e6e8543-5f7c-4ca4-403a-324d7361c700/public"
+        alt="Promotional banner"
+        loading="lazy"
+        decoding="async"
+        fetchpriority="low"
+      />
+
+      <div class="esconder" aria-hidden="true">
+        <section id="toper">
+          <h3>
+            Enjoy <span>FREE SHIPPING</span><br />on 3 and 6-Bottle Orders!
+          </h3>
+          <p>
+            *For long-term results, we recommend choosing the
+            <b>6 bottle option</b>
+          </p>
+        </section>
+
+        <div id="bottles">
+          <a
+            class="smartplayer-click-event"
+            href="https://trk.mistokles.lat/click/3"
+            aria-label="Order 6 bottles"
+          >
+            <img
+              src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/af990301-a8aa-4207-8e8d-09bc125f3e00/public"
+              alt="6-bottle package - best value"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+          <a
+            class="smartplayer-click-event"
+            href="https://trk.mistokles.lat/click/2"
+            aria-label="Order 3 bottles"
+          >
+            <img
+              src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/87cb79b2-1b0e-4b68-e8ee-7c683b927f00/public"
+              alt="3-bottle package"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+          <a
+            class="smartplayer-click-event"
+            href="https://trk.mistokles.lat/click/1"
+            aria-label="Order 1 bottle"
+          >
+            <img
+              src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/56aeefab-966b-4815-e158-8f576bf19600/public"
+              alt="1-bottle package"
+              loading="lazy"
+              decoding="async"
+            />
+          </a>
+        </div>
+
+        <img
+          class="offer-img"
+          src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/f68e308e-69fe-4128-5163-9be752483000/public"
+          alt="Special offer details"
+          loading="lazy"
+          decoding="async"
+        />
+      </div>
+
+      <!-- Comentários: renderizados via JS a partir de JSON. ~70% menos HTML. -->
+      <section class="comments" id="comments" aria-label="Customer comments">
+        <h3>22,715 comments</h3>
+      </section>
+
+      <footer><p>2026. All rights reserved.</p></footer>
+    </main>
+
+    <!-- Template para comentários (não renderiza, só armazena markup) -->
+    <template id="tpl-comment">
+      <article class="comment-card">
+        <div class="comment-body">
+          <img
+            class="comment-avatar"
+            alt=""
+            loading="lazy"
+            decoding="async"
+            width="45"
+            height="45"
+          />
+          <div class="comment-content">
+            <h4 class="comment-author"></h4>
+            <p class="comment-text"></p>
+          </div>
+        </div>
+        <div class="sub-comments">
+          <span class="action">Like</span><span class="point">.</span>
+          <span class="action">Reply</span><span class="point">.</span>
+          <span class="like-count">
+            <img
+              src="https://imagedelivery.net/2IMuCyHeF2Yuho0z8fGm6g/05cac1b2-01a2-45e3-888d-2a11afda9200/public"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            />
+            <span class="like-num"></span>
+          </span>
+          <span class="point">.</span>
+          <span class="time"></span>
+        </div>
+      </article>
+    </template>
+
+    <!-- Player vturb -->
+    <script
+      async
+      src="https://scripts.converteai.net/44b62239-d730-47b6-ae87-62548241599d/players/69eba386e1dcfbd062a1f22a/v4/player.js"
+    ></script>
+
+    <!-- App -->
+    <script>
+      ;(function () {
+        "use strict"
+
+        /* ============================================================
+         * Constantes
+         * ============================================================ */
+        var POSTBACK_URL = "https://kujvy.ttrk.io/postback"
+        var POSTBACK_TYPE = "VSLView"
+        var CLICKID_PARAM = "rtkcid"
+        var LEAD = "L1"
+        var PITCH_MMSS = 4633
+        var PITCH_MMSS = 3
+
+        /* Detecção de ambiente — útil pra debug e ajustes específicos */
+        var UA = navigator.userAgent || ""
+        var IS_IOS = /iPad|iPhone|iPod/.test(UA) && !window.MSStream
+        var IS_ANDROID = /Android/.test(UA)
+        var IS_INAPP =
+          /FBAN|FBAV|Instagram|TikTok|Line|Twitter|WeChat|MicroMessenger/i.test(
+            UA,
+          )
+
+        // Adiciona classes no <html> pra estilos condicionais se precisar
+        if (IS_IOS) document.documentElement.classList.add("ios")
+        if (IS_ANDROID) document.documentElement.classList.add("android")
+        if (IS_INAPP) document.documentElement.classList.add("inapp")
+
+        /* ============================================================
+         * 1. Postback (clickid → VSLView)
+         *    Usa sendBeacon quando disponível: zero impacto na UI thread.
+         * ============================================================ */
+        function postback() {
+          var params, clickid
+          try {
+            params = new URLSearchParams(location.search)
+            clickid = params.get(CLICKID_PARAM)
+          } catch (e) {
+            return
+          }
+          if (!clickid) return
+          var key = "pb:" + POSTBACK_TYPE + ":" + clickid
+          try {
+            if (sessionStorage.getItem(key)) return
+            sessionStorage.setItem(key, "1")
+          } catch (e) {}
+          var url =
+            POSTBACK_URL +
+            "?clickid=" +
+            encodeURIComponent(clickid) +
+            "&type=" +
+            encodeURIComponent(POSTBACK_TYPE)
+          // 1. sendBeacon — ideal: não bloqueia, sobrevive ao unload
+          if (navigator.sendBeacon) {
+            try {
+              if (navigator.sendBeacon(url)) return
+            } catch (e) {}
+          }
+          // 2. fetch keepalive — moderno
+          try {
+            fetch(url, {
+              method: "GET",
+              keepalive: true,
+              mode: "no-cors",
+              credentials: "omit",
+            }).catch(function () {
+              // 3. Image pixel — fallback universal (Safari iOS antigo, navegadores in-app de Insta/TikTok/FB)
+              new Image().src = url
+            })
+            return
+          } catch (e) {}
+          // 4. Último recurso
+          try {
+            new Image().src = url
+          } catch (e) {}
+        }
+
+        /* ============================================================
+         * 2. Player vturb — múltiplos eventos + fallback de 3s
+         * ============================================================ */
+        function setupPlayer() {
+          var player = document.querySelector("vturb-smartplayer")
+          var frame = document.getElementById("vsl-frame")
+          if (!player) return
+
+          var min = Math.floor(PITCH_MMSS / 100),
+            sec = PITCH_MMSS % 100
+          var delaySec = min * 60 + sec
+
+          var revealed = false,
+            pitched = false
+          function reveal() {
+            if (revealed) return
+            revealed = true
+            frame && frame.classList.add("is-ready")
+          }
+          function pitch() {
+            if (pitched) return
+            pitched = true
+            if (typeof player.displayHiddenElements === "function") {
+              player.displayHiddenElements(delaySec, [".esconder"], {
+                persist: true,
+              })
+            }
+            setTimeout(function () {
+              var h = document.querySelector(".esconder")
+              h && h.setAttribute("aria-hidden", "false")
+            }, delaySec * 1000)
+          }
+
+          ;["player:ready", "player:loaded", "player:play", "play"].forEach(
+            function (ev) {
+              player.addEventListener(
+                ev,
+                function () {
+                  reveal()
+                  if (ev === "player:ready") pitch()
+                },
+                { passive: true },
+              )
+            },
+          )
+
+          if (player.shadowRoot) reveal()
+          setTimeout(reveal, 3000)
+          setTimeout(function () {
+            if (!pitched) {
+              var h = document.querySelector(".esconder")
+              if (h) {
+                h.style.display = "block"
+                h.setAttribute("aria-hidden", "false")
+              }
+            }
+          }, delaySec * 1000)
+        }
+
+        /* ============================================================
+         * 3. Comentários — renderiza do JSON via <template>
+         * ============================================================ */
+        var COMMENTS = [
+          {
+            name: "James Mitchell",
+            avatar: "h-1",
+            likes: 23,
+            time: "2h",
+            resp: false,
+            text: "I started using this combination of ingredients 15 days ago, and the results are amazing. My blood pressure, which used to be always high, has started to stabilize. I'm determined to keep going strong because it's really worth it!",
+          },
+          {
+            name: "Patricia Simmons",
+            avatar: "m-3",
+            likes: 17,
+            time: "35min",
+            resp: true,
+            text: "FINALLY, someone who gets straight to the point! Thank you!! I just started today, and I'm so excited! ❤ I couldn't stand living in fear of having a heart attack or stroke… now I feel hopeful with this mixture.",
+          },
+          {
+            name: "Robert Walters",
+            avatar: "h-3",
+            likes: 11,
+            time: "7min",
+            resp: true,
+            text: "The way you explain things is so clear and straightforward… it's exactly what I needed. I'm going to prepare this combination today! If it really helps control my blood pressure, it's going to change my life.",
+          },
+          {
+            name: "Thomas Bennett",
+            avatar: "h-2",
+            likes: 33,
+            time: "1h",
+            resp: false,
+            text: "The clarity of this video is impressive. No fluff, no nonsense. You have the courage to tell the truth and show the way. Congratulations 😄 I had already tried everything to control my blood pressure without filling my body with medication, but this combination feels different. Now I finally see a light at the end of the tunnel.",
+          },
+          {
+            name: "Sandra Collins",
+            avatar: "m-1",
+            likes: 54,
+            time: "1h",
+            resp: false,
+            text: "I've been taking this mixture for 17 days now, and besides seeing my blood pressure go down, the changes in my body have been incredible. That constant fatigue, headaches, and fear are gone. Everything has changed for me! I absolutely love it!",
+          },
+          {
+            name: "Dorothy Harrison",
+            avatar: "m-2",
+            likes: 10,
+            time: "19min",
+            resp: false,
+            text: "You were a light in my life. A few years ago, I went through the worst phase I had ever experienced… living with high blood pressure, dizziness, chest pain, and constant fear. But then I decided to take care of myself and look for something that truly worked. I found your video, and it was a real blessing. I've been making this mixture for only 5 days, and I already feel completely renewed—lighter, more energized, and my blood pressure is finally coming down. I never imagined I could feel this good so quickly.",
+          },
+        ]
+
+        function renderComments() {
+          var root = document.getElementById("comments")
+          var tpl = document.getElementById("tpl-comment")
+          if (!root || !tpl) return
+          var frag = document.createDocumentFragment()
+          for (var i = 0; i < COMMENTS.length; i++) {
+            var c = COMMENTS[i]
+            var node = tpl.content.firstElementChild.cloneNode(true)
+            if (c.resp) node.classList.add("resp")
+            node.querySelector(".comment-avatar").src = c.avatar + ".jpg"
+            node.querySelector(".comment-author").textContent = c.name
+            node.querySelector(".comment-text").textContent = c.text
+            node.querySelector(".like-num").textContent = c.likes
+            node.querySelector(".time").textContent = c.time
+            frag.appendChild(node)
+          }
+          root.appendChild(frag)
+        }
+
+        /* ============================================================
+         * 4. Interações nos comentários (delegação de evento)
+         * ============================================================ */
+        function setupComments() {
+          var root = document.getElementById("comments")
+          if (!root) return
+          var activeTooltip = null,
+            tooltipTimer = null
+
+          function removeTooltip() {
+            if (activeTooltip && activeTooltip.parentNode)
+              activeTooltip.parentNode.removeChild(activeTooltip)
+            activeTooltip = null
+            if (tooltipTimer) {
+              clearTimeout(tooltipTimer)
+              tooltipTimer = null
+            }
+          }
+
+          document.addEventListener(
+            "click",
+            function (e) {
+              if (activeTooltip && !e.target.classList.contains("action"))
+                removeTooltip()
+            },
+            { passive: true },
+          )
+
+          root.addEventListener(
+            "click",
+            function (e) {
+              var t = e.target
+              if (!t.classList.contains("action")) return
+              var txt = t.textContent.trim()
+              if (txt === "Like" || txt === "Dislike") {
+                var sc = t.closest(".sub-comments")
+                if (!sc) return
+                var n = sc.querySelector(".like-num")
+                if (!n) return
+                var cur = parseInt(n.textContent, 10) || 0
+                if (txt === "Like") {
+                  n.textContent = cur + 1
+                  t.textContent = "Dislike"
+                } else {
+                  n.textContent = Math.max(0, cur - 1)
+                  t.textContent = "Like"
+                }
+                return
+              }
+              if (txt === "Reply") {
+                removeTooltip()
+                var tip = document.createElement("div")
+                tip.textContent = "it is no longer possible"
+                tip.className = "reply-tooltip"
+                document.body.appendChild(tip)
+                var r = t.getBoundingClientRect()
+                var tipW = tip.offsetWidth
+                // Clamp horizontal pra não sair da viewport em mobile
+                var left = Math.max(8, Math.min(r.left, innerWidth - tipW - 8))
+                var top = scrollY + r.top - 35
+                // Se for sair pelo topo, joga pra baixo do botão
+                if (top < scrollY + 8) top = scrollY + r.bottom + 8
+                tip.style.top = top + "px"
+                tip.style.left = left + "px"
+                activeTooltip = tip
+                tooltipTimer = setTimeout(removeTooltip, 3000)
+              }
+            },
+            { passive: true },
+          )
+        }
+
+        /* ============================================================
+         * 5. Lead tracking — sub16 nos links de oferta apenas
+         * ============================================================ */
+        function setupLeads() {
+          document
+            .querySelectorAll("#bottles a, .smartplayer-click-event")
+            .forEach(function (link) {
+              link.addEventListener(
+                "click",
+                function () {
+                  try {
+                    var u = new URL(link.href)
+                    u.searchParams.set("sub16", LEAD)
+                    link.href = u.toString()
+                  } catch (e) {}
+                },
+                { passive: true },
+              )
+            })
+        }
+
+        /* ============================================================
+         * Bootstrap
+         *    - postback: imediato (urgente, tracking)
+         *    - comentários e player: imediato
+         *    - listeners não-críticos: requestIdleCallback
+         * ============================================================ */
+        function idle(fn) {
+          if ("requestIdleCallback" in window)
+            requestIdleCallback(fn, { timeout: 1000 })
+          else setTimeout(fn, 0)
+        }
+
+        function init() {
+          postback()
+          renderComments()
+          setupPlayer()
+          idle(setupComments)
+          idle(setupLeads)
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init, { once: true })
+        } else {
+          init()
+        }
+      })()
+    </script>
+  </body>
+</html>
